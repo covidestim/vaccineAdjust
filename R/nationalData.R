@@ -21,7 +21,6 @@
 # maximum coverage per agegroup
 # number of days used for projection
 # end date
-library("tidyverse")
 createNationData <- function(maxCoverage = c(.5, .75,.75, 
                                              .85, .82, .82,
                                              .87, .92, .92,

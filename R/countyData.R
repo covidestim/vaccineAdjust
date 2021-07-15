@@ -14,7 +14,7 @@
 
 ## select variables: Date, FIPS, state, count census pct for all agegroup***
 
-createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensus){
+createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensus, endDate = as.Date("2022-12-31"), nda = 14){
 
   countyData  <- read.csv("https://raw.githubusercontent.com/covidestim/cdc-vaccine-data/master/combined.csv") # from https://github.com/covidestim/cdc-vaccine-data
   
