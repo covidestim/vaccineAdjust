@@ -4,6 +4,8 @@
 # The following block is used by usethis to automatically manage
 # roxygen namespace tags. Modify with care!
 ## usethis namespace: start
+#' @importFrom cli cli_process_done
+#' @importFrom cli cli_process_start
 #' @importFrom dplyr filter
 #' @importFrom dplyr group_by
 #' @importFrom dplyr group_modify
