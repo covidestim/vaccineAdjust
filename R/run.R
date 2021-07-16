@@ -1,22 +1,25 @@
-### source
-# setwd("") ### set wd to location file
 library("tidyverse")
-# source("nationalData.R")
-# source("countyCensus.R")
-# source("countyData.R")
-# source("deathData.R")
-# source("ifr.R")
 
-##### INPUTS #####
 run <- function() {
 
   ps <- cli_process_start
   pd <- cli_process_done
 
-  maxCoverage <- c(.5, .75,.75, # age0-12,12-15,16-17kids  https://www.abcactionnews.com/news/coronavirus/kff-research-3-in-10-parents-of-kids-12-15-will-get-their-child-vaccinated-for-covid-19-right-away
-                   .85, .82, .82, # age 18-24,25-39,40-49adults https://www.kff.org/coronavirus-covid-19/dashboard/kff-covid-19-vaccine-monitor-dashboard/
-                   .87, .92, .92, # age 50-64,65-74,75-99
-                 mean(c(.5,.75,.75)), mean(c(.87,.85,.82,.82)), .92) #composites, for the age groups 0-18;18-65 and 65-99)
+  maxCoverage <- c(
+    # age0-12,12-15,16-17kids
+    #https://www.abcactionnews.com/news/coronavirus/kff-research-3-in-10-parents-of-kids-12-15-will-get-their-child-vaccinated-for-covid-19-right-away
+    .5, .75,.75, 
+
+    # age 18-24,25-39,40-49adults
+    # https://www.kff.org/coronavirus-covid-19/dashboard/kff-covid-19-vaccine-monitor-dashboard/
+    .85, .82, .82, 
+
+    # age 50-64,65-74,75-99
+    .87, .92, .92, 
+
+    #composites, for the age groups 0-18;18-65 and 65-99)
+    mean(c(.5,.75,.75)), mean(c(.87,.85,.82,.82)), .92
+  ) 
 
 
   nda  <- 14
@@ -24,12 +27,13 @@ run <- function() {
   vacEff <- .8
   sevEff <- .598
 
-  provisionalDeathsPath <- "Provisional_COVID-19_Death_Counts_by_Sex__Age__and_State_01-10-2021.csv"
+  provisionalDeathsSystemPath <-
+    "Provisional_COVID-19_Death_Counts_by_Sex__Age__and_State_01-10-2021.csv"
 
-  ps("Reading internal file {.file {provisionalDeathsPath}}")
+  ps("Reading internal file {.file {provisionalDeathsSystemPath}}")
   deathsfile <- system.file(
     "csv", # Refers to subdirectory of 'inst/'
-    provisionalDeathsPath,
+    provisionalDeathsSystemPath,
     package = "vaccineAdjust"
   )
   pd()

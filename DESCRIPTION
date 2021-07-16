@@ -18,6 +18,7 @@ Imports:
     dplyr,
     imputeTS,
     magrittr,
+    readr,
     readxl,
     tidyr,
     utils

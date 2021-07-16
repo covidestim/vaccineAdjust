@@ -17,6 +17,7 @@
 #' @importFrom dplyr transmute
 #' @importFrom dplyr ungroup
 #' @importFrom magrittr %>%
+#' @importFrom readr read_csv
 #' @importFrom readxl read_excel
 #' @importFrom tidyr pivot_wider
 #' @importFrom utils download.file

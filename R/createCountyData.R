@@ -16,7 +16,23 @@
 
 createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensus, endDate = as.Date("2022-12-31"), nda = 14){
 
-  countyData  <- read.csv("https://raw.githubusercontent.com/covidestim/cdc-vaccine-data/master/combined.csv") # from https://github.com/covidestim/cdc-vaccine-data
+  # from https://healthdata.gov/dataset/COVID-19-Vaccinations-in-the-United-States-County/
+  countyData <- read_csv(
+    "https://data.cdc.gov/api/views/8xkx-amqh/rows.csv?accessType=DOWNLOAD",
+    col_types = cols(
+      Date = col_date(format = "%m/%d/%Y"),
+      FIPS = col_character(),
+      MMWR_week = col_number(),
+      Recip_County = col_character(),
+      Recip_State = col_character(),
+      SVI_CTGY = col_character(),
+      Series_Complete_Pop_Pct_SVI = col_character(),
+      Series_Complete_12PlusPop_Pct_SVI = col_character(),
+      Series_Complete_18PlusPop_Pct_SVI = col_character(),
+      Series_Complete_65PlusPop_Pct_SVI = col_character(),
+      .default = col_number()
+    )
+  ) %>% rename(County = Recip_County, StateName = Recip_State)
   
   countyData %>% 
     group_by(FIPS, StateName) %>% 
@@ -211,6 +227,9 @@ preFill <- function(cntDat, natDat){
   firstNatDat <- min(natDat$Date)
   firstCntDat <- min(cntDat$Date)
   dayDiff   <- as.numeric(firstCntDat - firstNatDat)
+  print(firstNatDat)
+  print(firstCntDat)
+  print(dayDiff)
   
   FirstObs <- cntDat[1,colnames(cntDat)[startsWith(colnames(cntDat), "Count_")]]
   NatTillFirst <- natDat[1:dayDiff+1, ] %>% select(c("Pct_age0to18",
