@@ -56,7 +56,7 @@ run <- function() {
 
   # this step create county level projected vaccines data by fine grained agegroup
   ps("Creating county-level vax projections, assuming {.code maxCoverage} = {.emph {maxCoverage}}")
-  countyData <- createCountyData(nationData, Census, maxCoverage, StateCensus) 
+  countyData <- createCountyData(nationData, modifiedCensus, maxCoverage, StateCensus) 
   pd()
 
   # add the deaths data to the dataframe

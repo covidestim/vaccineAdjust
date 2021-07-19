@@ -47,7 +47,7 @@ createDeaths <- function(deathsfile) {
     pivot_wider(names_from = Age.group2, values_from = COVID.19.Deaths_imp) %>%
     select(c("age1","age2","age3","age4", "age5","age6","age7","age8","age9","age10","age11", State)) %>%
     # group_by(State) %>%
-    transmute(StateName = State,
+    transmute(StateName = usdata::state2abbr(State),
               Deaths_age0to12 = age1 + age2+ age3/10*8, 
            Deaths_age12to15 = age3/10*2 + age4/10*1, 
            Deaths_age16to17 = age4/10*2, 
@@ -59,6 +59,6 @@ createDeaths <- function(deathsfile) {
            Deaths_age75to99 = age10 + age11) %>%
     ungroup() %>%
     select(-c(State)) -> Deaths
-
+  
   Deaths
 }  

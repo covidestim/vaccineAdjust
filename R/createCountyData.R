@@ -109,31 +109,47 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
            TotalMissings65to99 = sum(is.na(Count_age65to99_ct)),
            LengthDates = as.numeric(max(Date) - min(Date)),
            
-           )  %>%
+           )  %>% 
     # if less than 3 observations are present, fill the count data of vaccine with national pct * county agegroup census
     mutate(
       Count_age0to18_ct = if_else(TotalMissings0to18 > (LengthDates - 2),
-                                  as.numeric(
+                                  {replacement <- as.numeric(
                                     as.matrix(
                                       nationalData[which(nationalData$Date %in% Date),"Pct_age0to18"]
                                     )
-                                  ) * census_age0to18_ct,
-                                  as.double(Count_age0to18_ct)),
+                                  ) 
+                                  if(min(Date) < min(nationalData$Date)){
+                                  out <-  c(rep(NA, as.numeric(min(nationalData$Date) - min(Date))),
+                                      replacement);
+                                  out * census_age0to18_ct;
+                                  } else {replacement* census_age0to18_ct;}
+                                  },
+                                  as.double(Count_age0to18_ct)) ,
       Count_age18to64_ct = if_else(TotalMissings18to64 > (LengthDates - 2),
-                                   as.numeric(
+                                   {replacement <- as.numeric(
                                      as.matrix(
                                        nationalData[which(nationalData$Date %in% Date),"Pct_age18to64"]
                                      )
-                                   ) * census_age18to64_ct,
+                                   )
+                                   if(min(Date) < min(nationalData$Date)){
+                                     out <-  c(rep(NA, as.numeric(min(nationalData$Date) - min(Date))),
+                                               replacement);
+                                     out * census_age18to64_ct;
+                                   } else {replacement* census_age18to64_ct}},
                                    as.double(Count_age18to64_ct)),
       Count_age65to99_ct = if_else(TotalMissings65to99 > (LengthDates - 2),
-                                   as.numeric(
+                                  { replacement <- as.numeric(
                                      as.matrix(
                                        nationalData[which(nationalData$Date %in% Date),"Pct_age65to99"]
                                      )
-                                   ) * census_age65to99_ct,
+                                   )
+                                   if(min(Date) < min(nationalData$Date)){
+                                     out <-  c(rep(NA, as.numeric(min(nationalData$Date) - min(Date))),
+                                               replacement);
+                                     out * census_age65to99_ct;
+                                   } else { replacement * census_age65to99_ct}},
                                    as.double(Count_age65to99_ct))
-    )   %>%
+    )  %>%
     ungroup() %>%
     # replace the remaining missing values with the moving average
     group_by(FIPS, StateName) %>%
@@ -191,8 +207,8 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
              FIPS,
              StateName, starts_with("census"), ends_with("_sc"))) %>%
     select(-c("census_age0to18_ct", "census_age18to64_ct", "census_age65to99_ct"))  %>% 
-      group_by(Date) %>%
-    group_modify(~stateImpute(.x, stateCensus)) %>%
+      group_by(Date)  %>%
+  group_modify(~stateImpute(.x, stateCensus)) %>%
     ungroup() %>% 
     mutate(
       Pct_age0to12_ct =  Count_age0to12_ct_sc /census_age0to12_ct,
@@ -227,9 +243,10 @@ preFill <- function(cntDat, natDat){
   firstNatDat <- min(natDat$Date)
   firstCntDat <- min(cntDat$Date)
   dayDiff   <- as.numeric(firstCntDat - firstNatDat)
-  print(firstNatDat)
-  print(firstCntDat)
-  print(dayDiff)
+  if(dayDiff <= 0){return(cntDat)}
+  # print(firstNatDat)
+  # print(firstCntDat)
+  # print(dayDiff)
   
   FirstObs <- cntDat[1,colnames(cntDat)[startsWith(colnames(cntDat), "Count_")]]
   NatTillFirst <- natDat[1:dayDiff+1, ] %>% select(c("Pct_age0to18",

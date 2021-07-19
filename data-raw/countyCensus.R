@@ -3,10 +3,11 @@
 library(magrittr)
 library(tidyverse)
 tmp = tempfile(fileext = ".xlsx")
-download.file(url = "https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/detail/sc-est2019-agesex-25.xlsx", destfile = tmp, mode = "wb")
+download.file(url = "https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/detail/sc-est2019-agesex-01.xlsx", destfile = tmp, mode = "wb")
 
 stateCensus  <- readxl::read_excel(tmp, range = "AI7:AI24", col_names = FALSE)
 stateCensus  <- data.frame(t(stateCensus), "StateName" = state.name[1])
+stateName_DC <- c(state.name[1:8], "District of Columbia", state.name[9:50])
 
 countyCensus <- read.csv("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-01.csv")
 validN <- c(2,4:6,8:13,15:42,44:51,53:56)
@@ -23,7 +24,7 @@ validN <- c(2,4:6,8:13,15:42,44:51,53:56)
   }
    
    tempState  <- readxl::read_excel(tmp, range = "AI7:AI24", col_names = FALSE)
-   tempState  <- data.frame(t(tempState), "StateName" = state.name[i+1])
+   tempState  <- data.frame(t(tempState), "StateName" = stateName_DC[i+1])
 
    
   stateCensus  <- rbind(stateCensus, tempState)
@@ -49,7 +50,7 @@ transmute(census_age0to12_ct = AGE04_TOT + AGE59_TOT + AGE1014_TOT/5*3,
           census_age65to99_ct = AGE6569_TOT + AGE7074_TOT +
             AGE7579_TOT + AGE8084_TOT + AGE85PLUS_TOT) %>%
 mutate(County = gsub(" County", "", CTYNAME),
-       StateName = STNAME) %>%
+       StateName = usdata::state2abbr(STNAME)) %>%
 ungroup() %>%
 select(-c(STNAME, CTYNAME)) -> Census # County census
 
@@ -64,7 +65,7 @@ transmute(census_age0to12_ct = round(stateCensus[,1] + stateCensus[,2] + stateCe
     census_age65to74_ct = round(stateCensus[,14]+stateCensus[,15]),
     census_age75to99_ct = round(stateCensus[,16] + stateCensus[,17] + stateCensus[,18]),
     County = StateName,
-    StateName = StateName
+    StateName = usdata::state2abbr(StateName)
 ) %>%
 ungroup() -> StateCensus
 
