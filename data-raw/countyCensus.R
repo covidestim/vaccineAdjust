@@ -69,5 +69,5 @@ transmute(census_age0to12_ct = round(stateCensus[,1] + stateCensus[,2] + stateCe
 ) %>%
 ungroup() -> StateCensus
 
-usethis::use_data(Census, StateCensus, internal = TRUE)
+usethis::use_data(Census, StateCensus, internal = TRUE, overwrite = TRUE)
 
