@@ -1,5 +1,15 @@
 library("tidyverse")
 
+#' Run the script
+#'
+#' Description of what the script does
+#'
+#' @return Description of the return value
+#'
+#' @examples
+#' result <- run()
+#'
+#' @export
 run <- function() {
 
   ps <- cli_process_start
