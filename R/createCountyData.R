@@ -47,13 +47,7 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
                         County,
                         paste0(County, sufName))
               } else { County },               
-              #   County = if(any(endsWith(County, " City"))){
-              #   if_else(endsWith(County, " City"),
-              #           County,
-              #           paste0(County, " City"))
-              # } else { County },
-              # err = if(length(unique(County)) > 1){TRUE} else {FALSE},
-              Count_age18to99_ct = Series_Complete_18Plus,
+               Count_age18to99_ct = Series_Complete_18Plus,
               Count_age65to99_ct = Series_Complete_65Plus,
               Pct_age18to99_ct = Series_Complete_18PlusPop_Pct,
               Pct_age65to99_ct = Series_Complete_65PlusPop_Pct,
@@ -84,7 +78,6 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
     select(c(Date,
              FIPS,
              County,
-             # err,
              StateName,
              Count_age0to18_ct, 
              Count_age18to64_ct, 
@@ -164,63 +157,85 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
                TotalMissings18to64,
                TotalMissings65to99,
                LengthDates)) %>%
-     group_by(FIPS, StateName, County) %>%
+    ## compute the more finegrained agegroups, using  the national level agegroups percentages
+    inner_join(nationalData, by = "Date") %>%
+    group_by(FIPS, StateName) %>%
+    mutate(Count_age0to18_ct_lag = c(Count_age0to18_ct[1], diff(Count_age0to18_ct, 1)),
+           Count_age18to64_ct_lag = c(Count_age18to64_ct[1], diff(Count_age18to64_ct, 1)),
+           Count_age65to99_ct_lag = c(Count_age65to99_ct[1], diff(Count_age65to99_ct, 1)) ,
+           Count_age0to12_ct =relPct_age0to12 *Count_age0to18_ct_lag,
+           Count_age12to15_ct = relPct_age12to15*Count_age0to18_ct_lag,
+           Count_age16to17_ct = relPct_age16to17*Count_age0to18_ct_lag,
+           Count_age18to24_ct = relPct_age18to24*Count_age18to64_ct_lag,
+           Count_age25to39_ct = relPct_age25to39*Count_age18to64_ct_lag,
+           Count_age40to49_ct = relPct_age40to49*Count_age18to64_ct_lag,
+           Count_age50to64_ct = relPct_age50to64*Count_age18to64_ct_lag,
+           Count_age65to74_ct = relPct_age65to74*Count_age65to99_ct_lag,
+           Count_age75to99_ct = relPct_age75to99*Count_age65to99_ct_lag, 
+           Count_age0to12_ctCS=   cumsum(Count_age0to12_ct),
+           Count_age12to15_ctCS = cumsum(Count_age12to15_ct),
+           Count_age16to17_ctCS = cumsum(Count_age16to17_ct),
+           Count_age18to24_ctCS = cumsum(Count_age18to24_ct),
+           Count_age25to39_ctCS = cumsum(Count_age25to39_ct),
+           Count_age40to49_ctCS = cumsum(Count_age40to49_ct),
+           Count_age50to64_ctCS = cumsum(Count_age50to64_ct),
+           Count_age65to74_ctCS = cumsum(Count_age65to74_ct),
+           Count_age75to99_ctCS = cumsum(Count_age75to99_ct),
+           Date = Date)   %>% 
+    ungroup()    %>%
+    select(c(Date, FIPS,
+             StateName, 
+             ends_with("ctCS"),
+             starts_with("census")))%>%
+    select(-c("census_age0to18_ct", "census_age18to64_ct", "census_age65to99_ct")) %>% 
+    group_by(Date)  %>%
+    group_modify(~stateImpute(.x, stateCensus)) %>%
+    ungroup()  %>% 
+    group_by(FIPS, StateName) %>%
     # project the last observations from observed county estimates
-     group_modify(~ projectionCounty(.x, maxVac = maxCoverage[10:12], nda = nda, endDate = endDate))  %>%
-     select(c(FIPS, StateName,
-                         County,
-             Date,
-             Count_age0to18_ct,
-             Count_age18to64_ct,
-             Count_age65to99_ct))  %>%
-     group_by(FIPS, StateName, County) %>%
+    group_modify(~ projectionCounty(.x, maxVac = maxCoverage[1:9], nda = nda, endDate = endDate)) %>%
+    group_by(FIPS, StateName)   %>%
     # prefill based on national data
     group_modify(~preFill(.x,natDat = nationalData))  %>%
-      ungroup() %>% 
-    ## compute the more finegrained agegroups, using  the national level agegroups percentages
-    right_join(nationalData, by = "Date") %>%
-     left_join(CountyCensus, by = c("StateName", "County")) %>% 
+    ungroup()   %>% 
     mutate(
-      Count_age0to12_ct = round(Pct_age0to12 *census_age0to12_ct),
-      Count_age12to15_ct =round(Pct_age12to15*census_age12to15_ct),
-      Count_age16to17_ct =round(Pct_age16to17*census_age16to17_ct),
-      Count_age18to24_ct =round(Pct_age18to24*census_age18to24_ct),
-      Count_age25to39_ct =round(Pct_age25to39*census_age25to39_ct),
-      Count_age40to49_ct =round(Pct_age40to49*census_age40to49_ct),
-      Count_age50to64_ct =round(Pct_age50to64*census_age50to64_ct),
-      Count_age65to74_ct =round(Pct_age65to74*census_age65to74_ct),
-      Count_age75to99_ct =round(Pct_age75to99*census_age75to99_ct),
-      Count_age0to18_ct_sum = Count_age0to12_ct + Count_age12to15_ct + Count_age16to17_ct,
-      Count_age18to64_ct_sum = Count_age18to24_ct + Count_age25to39_ct + Count_age40to49_ct+ Count_age50to64_ct,
-      Count_age65to99_ct_sum = Count_age65to74_ct + Count_age75to99_ct,
-      # rescale the computed counts to match the observed counts in the aggregate agegroup
-      Count_age0to12_ct_sc= (Count_age0to12_ct +1)*( Count_age0to18_ct+1)/(Count_age0to18_ct_sum +1),
-      Count_age12to15_ct_sc= (Count_age12to15_ct+1)*( Count_age0to18_ct+1)/(Count_age0to18_ct_sum +1),
-      Count_age16to17_ct_sc= (Count_age16to17_ct+1)*( Count_age0to18_ct+1)/(Count_age0to18_ct_sum +1),
-      Count_age18to24_ct_sc= (Count_age18to24_ct+1)*(Count_age18to64_ct+1)/(Count_age18to64_ct_sum+1),
-      Count_age25to39_ct_sc= (Count_age25to39_ct+1)*(Count_age18to64_ct+1)/(Count_age18to64_ct_sum+1),
-      Count_age40to49_ct_sc= (Count_age40to49_ct+1)*(Count_age18to64_ct+1)/(Count_age18to64_ct_sum+1),
-      Count_age50to64_ct_sc= (Count_age50to64_ct+1)*(Count_age18to64_ct+1)/(Count_age18to64_ct_sum+1),
-      Count_age65to74_ct_sc= (Count_age65to74_ct+1)*(Count_age65to99_ct+1)/(Count_age65to99_ct_sum+1),
-      Count_age75to99_ct_sc= (Count_age75to99_ct+1)*(Count_age65to99_ct+1)/(Count_age65to99_ct_sum+1)) %>%
-    select(c(Date, 
-             FIPS,
-             StateName, starts_with("census"), ends_with("_sc"))) %>%
-    select(-c("census_age0to18_ct", "census_age18to64_ct", "census_age65to99_ct"))  %>% 
-      group_by(Date)  %>%
-  group_modify(~stateImpute(.x, stateCensus)) %>%
-    ungroup() %>% 
-    mutate(
-      Pct_age0to12_ct =  Count_age0to12_ct_sc /census_age0to12_ct,
-      Pct_age12to15_ct = Count_age12to15_ct_sc/census_age12to15_ct,
-      Pct_age16to17_ct = Count_age16to17_ct_sc/census_age16to17_ct,
-      Pct_age18to24_ct = Count_age18to24_ct_sc/census_age18to24_ct,
-      Pct_age25to39_ct = Count_age25to39_ct_sc/census_age25to39_ct,
-      Pct_age40to49_ct = Count_age40to49_ct_sc/census_age40to49_ct,
-      Pct_age50to64_ct = Count_age50to64_ct_sc/census_age50to64_ct,
-      Pct_age65to74_ct = Count_age65to74_ct_sc/census_age65to74_ct,
-      Pct_age75to99_ct = Count_age75to99_ct_sc/census_age75to99_ct,
-      Date = Date) %>% 
+      Pct_age0to12_ct =   Count_age0to12_ctCS /census_age0to12_ct,
+      Pct_age12to15_ct = Count_age12to15_ctCS/census_age12to15_ct,
+      Pct_age16to17_ct = Count_age16to17_ctCS/census_age16to17_ct,
+      Pct_age18to24_ct = Count_age18to24_ctCS/census_age18to24_ct,
+      Pct_age25to39_ct = Count_age25to39_ctCS/census_age25to39_ct,
+      Pct_age40to49_ct = Count_age40to49_ctCS/census_age40to49_ct,
+      Pct_age50to64_ct = Count_age50to64_ctCS/census_age50to64_ct,
+      Pct_age65to74_ct = Count_age65to74_ctCS/census_age65to74_ct,
+      Pct_age75to99_ct = Count_age75to99_ctCS/census_age75to99_ct,
+      Pct_age0to12_ct = if_else(Pct_age0to12_ct > maxCoverage[1],
+                                maxCoverage[1],
+                                Pct_age0to12_ct), 
+      Pct_age12to15_ct = if_else(Pct_age12to15_ct > maxCoverage[2],
+                                 maxCoverage[2],
+                                 Pct_age12to15_ct),
+      Pct_age16to17_ct = if_else(Pct_age16to17_ct > maxCoverage[3],
+                                 maxCoverage[3],
+                                 Pct_age16to17_ct),
+      Pct_age18to24_ct = if_else(Pct_age18to24_ct > maxCoverage[4],
+                                 maxCoverage[4],
+                                 Pct_age18to24_ct),
+      Pct_age25to39_ct = if_else(Pct_age25to39_ct > maxCoverage[5],
+                                 maxCoverage[5],
+                                 Pct_age25to39_ct),
+      Pct_age40to49_ct = if_else(Pct_age40to49_ct > maxCoverage[6],
+                                 maxCoverage[6],
+                                 Pct_age40to49_ct),
+      Pct_age50to64_ct = if_else(Pct_age50to64_ct > maxCoverage[7],
+                                 maxCoverage[7],
+                                 Pct_age50to64_ct),
+      Pct_age65to74_ct = if_else(Pct_age65to74_ct > maxCoverage[8],
+                                 maxCoverage[8],
+                                 Pct_age65to74_ct),
+      Pct_age75to99_ct = if_else(Pct_age75to99_ct > maxCoverage[9],
+                                 maxCoverage[9],
+                                 Pct_age75to99_ct),
+      Date = Date)  %>% 
     select(Date, 
                               FIPS,
                               StateName,
@@ -244,29 +259,26 @@ preFill <- function(cntDat, natDat){
   firstCntDat <- min(cntDat$Date)
   dayDiff   <- as.numeric(firstCntDat - firstNatDat)
   if(dayDiff <= 0){return(cntDat)}
-  # print(firstNatDat)
-  # print(firstCntDat)
-  # print(dayDiff)
   
   FirstObs <- cntDat[1,colnames(cntDat)[startsWith(colnames(cntDat), "Count_")]]
-  NatTillFirst <- natDat[1:dayDiff+1, ] %>% select(c("Pct_age0to18",
-                                                     "Pct_age18to64", 
-                                                     "Pct_age65to99"))
+  NatTillFirst <- natDat[1:dayDiff+1, ] %>% select(starts_with("Pct_"))
   
-  preVac <- matrix(NA, nrow = dayDiff, ncol = 3)
+  preVac <- matrix(NA, nrow = dayDiff, ncol = 9)
   
-  for(j in 1:3){
+  for(j in 1:9){
     preVac[,j] <- as.numeric(FirstObs[,j])* (as.matrix(NatTillFirst[,j]) / as.numeric(as.matrix(NatTillFirst[dayDiff,j])))
   }
+  census <- cntDat %>% ungroup() %>% select(starts_with("census_"))
+  
   preDates <- as.Date(seq.Date(firstNatDat, firstCntDat - 1, 1))
-  preDat <- data.frame(preDates,preVac)
+  preDat <- data.frame(preDates,preVac,census[1,])
   colnames(preDat) <- colnames(cntDat)
   
   compDat <- rbind(preDat, cntDat)
   compDat
 }
 
-projectionCounty <- function(dat, maxVac = rep(.8, 3), nda = 14, endDate = as.Date("2022-12-31")){
+projectionCounty <- function(dat, maxVac = rep(.8, 9), nda = 14, endDate = as.Date("2022-12-31")){
   
   lastDate  <- dat[[nrow(dat),"Date"]]
   dayDiff   <- as.numeric(endDate - lastDate)
@@ -274,8 +286,7 @@ projectionCounty <- function(dat, maxVac = rep(.8, 3), nda = 14, endDate = as.Da
   Date      <- seq.Date(lastDate+1, endDate, by = 1)
 
   LastCen <- dat[1,colnames(dat)[startsWith(colnames(dat), "census_")]]
-  LastCen <- LastCen[(length(LastCen)-2):length(LastCen)]
- 
+
   LastObs <- dat[nrow(dat),colnames(dat)[startsWith(colnames(dat), "Count_")]]
   rateObs <- dat[nrow(dat) - nda, colnames(dat)[startsWith(colnames(dat), "Count_")]]
   obsVac <- LastObs/LastCen
@@ -305,12 +316,12 @@ projectionCounty <- function(dat, maxVac = rep(.8, 3), nda = 14, endDate = as.Da
 }
 
 stateImpute <- function(groupdata, stateCensus){
-  stateTotal <- groupdata %>% group_by(StateName) %>% summarise_at(vars(ends_with("_sc")), sum, na.rm = TRUE)
+  stateTotal <- groupdata %>% group_by(StateName) %>% summarise_at(vars(ends_with("_ctCS")), sum, na.rm = TRUE)
   stateCensus <- stateCensus %>% select(-c(County))
   allState <- right_join(stateCensus, stateTotal, by = "StateName")
   res <- data.frame("FIPS" = allState$StateName, allState$StateName, 
-                    select(allState, starts_with("census")), 
-                    select(allState, starts_with("Count_")))
+                    select(allState, starts_with("Count_")), 
+                    select(allState, starts_with("census")))
   colnames(res) <- colnames(groupdata)
   
   final <- rbind(groupdata, res)

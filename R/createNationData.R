@@ -21,11 +21,11 @@
 # maximum coverage per agegroup
 # number of days used for projection
 # end date
-createNationData <- function(maxCoverage = c(.5, .75,.75, 
+createNationData <- function(maxCoverage = c(.77, .77,.76, 
                                              .85, .82, .82,
                                              .87, .92, .92,
                                              mean(c(.5,.75,.75)), 
-                                             mean(c(.87,.85,.82,.82)), 
+                                             mean(c(.85,.82,.82,.87)), 
                                              mean(c(.92,.92))),
                              nda = 14,
                              endDate = as.Date("2022-12-31")){
@@ -81,13 +81,49 @@ complete %>%
          Pct_age65to99 =  (Pct_age65to74*census_age65to74 +
                            Pct_age75to99*census_age75to99) /   (census_age65to74 +
                                                                 census_age75to99)
-         ) %>%
+         )  -> tempDat 
+tempDat %>%
   select(c(Date, starts_with("Pct_"))) %>%
   projection(maxVac = maxCoverage, 
-             nda = 14, 
+             nda = nda, 
              endDate = endDate) -> projectNation
 
-projectNation
+ProjAndCens <- cbind(projectNation, tempDat[1,startsWith(colnames(tempDat),
+                                                         "census")])  
+ProjAndCens%>%
+  mutate(relPct_age0to12 = Pct_age0to12*census_age0to12/((Pct_age0to12*census_age0to12 + 
+                                                            Pct_age12to15*census_age12to15 +
+                                                            Pct_age16to17*census_age16to17)+1),
+         relPct_age12to15 = Pct_age12to15*census_age12to15/((Pct_age0to12*census_age0to12 + 
+                                                               Pct_age12to15*census_age12to15 +
+                                                               Pct_age16to17*census_age16to17)+1),
+         relPct_age16to17 = Pct_age16to17*census_age16to17/((Pct_age0to12*census_age0to12 + 
+                                                               Pct_age12to15*census_age12to15 +
+                                                               Pct_age16to17*census_age16to17)+1),
+         relPct_age18to24 = Pct_age18to24*census_age18to24/((Pct_age18to24*census_age18to24 + 
+                                                               Pct_age25to39*census_age25to39 +
+                                                               Pct_age40to49*census_age40to49 +
+                                                               Pct_age50to64*census_age50to64)+1),
+         relPct_age25to39 = Pct_age25to39*census_age25to39/((Pct_age18to24*census_age18to24 + 
+                                                               Pct_age25to39*census_age25to39 +
+                                                               Pct_age40to49*census_age40to49 +
+                                                               Pct_age50to64*census_age50to64)+1),
+         relPct_age40to49 = Pct_age40to49*census_age40to49/((Pct_age18to24*census_age18to24 + 
+                                                               Pct_age25to39*census_age25to39 +
+                                                               Pct_age40to49*census_age40to49 +
+                                                               Pct_age50to64*census_age50to64)+1),
+         relPct_age50to64 = Pct_age50to64*census_age50to64/((Pct_age18to24*census_age18to24 + 
+                                                               Pct_age25to39*census_age25to39 +
+                                                               Pct_age40to49*census_age40to49 +
+                                                               Pct_age50to64*census_age50to64)+1),
+         relPct_age65to74 = Pct_age65to74*census_age65to74/((Pct_age65to74*census_age65to74 + 
+                                                               Pct_age75to99*census_age75to99)+1),
+         relPct_age75to99 = Pct_age75to99*census_age75to99/((Pct_age65to74*census_age65to74 + 
+                                                               Pct_age75to99*census_age75to99)+1)
+         
+  ) %>% select(c(Date, starts_with("Pct_"), starts_with("relPct_"))) -> final
+
+final
 }
 
 ## function to project data into future
@@ -103,7 +139,7 @@ projection <- function(dat, maxVac = rep(.8, 9), nda = 14, endDate = as.Date("20
   
   vacRate   <- as.numeric(lastVac - (dat[(nrow(dat) - nda),
                                          startsWith(colnames(dat), "Pct")]))/(nda+1)
-  vacRate[which(vacRate <= 0)] <- 0
+  vacRate[which(vacRate <= 0)] <- 0.001
   maxVac[which(maxVac <= lastVac)] <- lastVac[which(maxVac <= lastVac)]
   
   for(j in 1:nGroup){
