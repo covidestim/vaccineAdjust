@@ -53,7 +53,7 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
               Pct_age65to99_ct = Series_Complete_65PlusPop_Pct,
               Series_Complete_Yes = Series_Complete_Yes,
               Series_Complete_Pop_Pct = Series_Complete_Pop_Pct) %>%
-    rowwise() %>%
+    # rowwise() %>%
     mutate(
       census_age18to99_ct = round((Count_age18to99_ct/Pct_age18to99_ct)*100),
       census_age65to99_ct = round((Count_age65to99_ct/Pct_age65to99_ct)*100),

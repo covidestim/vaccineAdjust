@@ -64,9 +64,9 @@ run <- function() {
 
   # `Census` is a package-local object generated in 'data-raw/'
   modifiedCensus <- Census 
-
-  # fix to match the county names that end in city to City
-  modifiedCensus$County <- gsub(" city", " City", modifiedCensus$County) 
+  
+#  # fix to match the county names that end in city to City
+  # modifiedCensus$County <- gsub(" city", " City", modifiedCensus$County) 
 
   ### Process the different datasources.
   ps("Creating age-stratified deaths by state")
