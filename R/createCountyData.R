@@ -37,16 +37,17 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
   countyData %>% 
     group_by(FIPS, StateName) %>% 
     transmute(Date = as.Date(Date),
-              County = gsub(" County", "", County),
-              County = if(length(unique(County)) > 1){
-                maxName = max(nchar(as.matrix(County)))
-                firstLong = which(nchar(as.matrix(County)) == maxName)
-                sufLocation = stringi::stri_locate_last(County[firstLong[1]], regex = " ")[1]
-                sufName = substr(County[firstLong[1]], start = sufLocation, stop = maxName)
-                if_else(endsWith(County, sufName),
-                        County,
-                        paste0(County, sufName))
-              } else { County },               
+              County = County,
+              # County = gsub(" County", "", County),
+              # County = if(length(unique(County)) > 1){
+              #   maxName = max(nchar(as.matrix(County)))
+              #   firstLong = which(nchar(as.matrix(County)) == maxName)
+              #   sufLocation = stringi::stri_locate_last(County[firstLong[1]], regex = " ")[1]
+              #   sufName = substr(County[firstLong[1]], start = sufLocation, stop = maxName)
+              #   if_else(endsWith(County, sufName),
+              #           County,
+              #           paste0(County, sufName))
+              # } else { County },               
                Count_age18to99_ct = Series_Complete_18Plus,
               Count_age65to99_ct = Series_Complete_65Plus,
               Pct_age18to99_ct = Series_Complete_18PlusPop_Pct,
@@ -77,7 +78,7 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
     ungroup() %>%
     select(c(Date,
              FIPS,
-             County,
+             # County,
              StateName,
              Count_age0to18_ct, 
              Count_age18to64_ct, 
@@ -87,15 +88,21 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
   
   ## all dates between min and max observed date
   allDates <- CntDat %>% 
-    group_by(FIPS, StateName, County) %>%
+    group_by(FIPS, StateName
+             # , County
+             ) %>%
     summarize(Date = seq.Date(min(Date), max(Date), by = 1), 
               .groups = 'drop')
   
   ## Create complete datase 
   completeCounty <- left_join(allDates, CntDat, 
-                              by = c("Date","FIPS", "StateName", "County")) %>% 
+                              by = c("Date","FIPS", "StateName"
+                                     # , "County"
+                                     )) %>% 
+    left_join(CountyCensus, by = c("StateName", "FIPS"
+                                   # , "County"
+                                   )) %>% 
     group_by(FIPS, StateName) %>%
-    left_join(CountyCensus, by = c("StateName", "County")) %>% 
   # create variables to indicate the number of missings in the data  
     mutate(TotalMissings0to18 = sum(is.na(Count_age0to18_ct)),
            TotalMissings18to64 = sum(is.na(Count_age18to64_ct)),

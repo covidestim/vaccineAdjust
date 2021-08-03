@@ -9,18 +9,36 @@ stateCensus  <- readxl::read_excel(tmp, range = "AI7:AI24", col_names = FALSE)
 stateCensus  <- data.frame(t(stateCensus), "StateName" = state.name[1])
 stateName_DC <- c(state.name[1:8], "District of Columbia", state.name[9:50])
 
-countyCensus <- read.csv("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-01.csv")
+countyCensus <- read_csv("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-01.csv",
+                         col_types = cols(SUMLEV = col_number(),
+                                          STATE = col_character(),
+                                          COUNTY = col_character(),
+                                          STNAME = col_character(),
+                                          CTYNAME = col_character(),
+                                          .default = col_number()))
 validN <- c(2,4:6,8:13,15:42,44:51,53:56)
 
  for(i in 1:length(validN)){
   if(validN[i] < 10){
   download.file(url = paste0("https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/detail/sc-est2019-agesex-0",validN[i],".xlsx"), destfile = tmp,
                 mode = "wb")
-    temp <- read.csv(paste0("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-0",validN[i],".csv"))
+    temp <- read_csv(paste0("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-0",validN[i],".csv"),
+                     col_types = cols(SUMLEV = col_number(),
+                                      STATE = col_character(),
+                                      COUNTY = col_character(),
+                                      STNAME = col_character(),
+                                      CTYNAME = col_character(),
+                                      .default = col_number()))
   } else {
     download.file(url = paste0("https://www2.census.gov/programs-surveys/popest/tables/2010-2019/state/detail/sc-est2019-agesex-",validN[i],".xlsx"), destfile = tmp,
                   mode = "wb")
-  temp <- read.csv(paste0("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-",validN[i],".csv"))
+  temp <- read_csv(paste0("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/counties/asrh/cc-est2019-agesex-",validN[i],".csv"),
+                   col_types = cols(SUMLEV = col_number(),
+                                    STATE = col_character(),
+                                    COUNTY = col_character(),
+                                    STNAME = col_character(),
+                                    CTYNAME = col_character(),
+                                    .default = col_number()))
   }
    
    tempState  <- readxl::read_excel(tmp, range = "AI7:AI24", col_names = FALSE)
@@ -32,7 +50,7 @@ validN <- c(2,4:6,8:13,15:42,44:51,53:56)
 }
 
 countyCensus %>% filter(YEAR == 12) %>%
-group_by(CTYNAME, STNAME) %>%
+group_by(COUNTY, STATE, CTYNAME, STNAME) %>%
 transmute(census_age0to12_ct = AGE04_TOT + AGE59_TOT + AGE1014_TOT/5*3,
           census_age12to15_ct = AGE1014_TOT/5*2 + AGE1519_TOT/5*1,
           census_age16to17_ct = AGE1519_TOT/5*2,
@@ -50,7 +68,8 @@ transmute(census_age0to12_ct = AGE04_TOT + AGE59_TOT + AGE1014_TOT/5*3,
           census_age65to99_ct = AGE6569_TOT + AGE7074_TOT +
             AGE7579_TOT + AGE8084_TOT + AGE85PLUS_TOT) %>%
 mutate(County = gsub(" County", "", CTYNAME),
-       StateName = usdata::state2abbr(STNAME)) %>%
+       StateName = usdata::state2abbr(STNAME),
+       FIPS = paste0(STATE,COUNTY)) %>%
 ungroup() %>%
 select(-c(STNAME, CTYNAME)) -> Census # County census
 
