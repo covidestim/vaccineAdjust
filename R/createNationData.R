@@ -31,7 +31,7 @@ createNationData <- function(maxCoverage = c(.77, .77,.76,
                              endDate = as.Date("2022-12-31")){
 
 # download data from github
-nationData  <- read.csv("https://raw.githubusercontent.com/covidestim/cdc-vaccine-data/master/national_agedist.csv")
+nationData  <- read_csv("https://raw.githubusercontent.com/covidestim/cdc-vaccine-data/master/national_agedist.csv")
 
 # reformat and select variables
 NatDat <- transmute(nationData, 

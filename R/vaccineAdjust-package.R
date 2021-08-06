@@ -30,6 +30,7 @@
 #' @importFrom readr col_date
 #' @importFrom readr col_number
 #' @importFrom readr cols
+#' @importFrom readr cols_only
 #' @importFrom readr read_csv
 #' @importFrom readxl read_excel
 #' @importFrom tidyr pivot_wider
