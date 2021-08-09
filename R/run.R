@@ -1,5 +1,3 @@
-library("tidyverse")
-
 #' Run the script
 #'
 #' Description of what the script does
@@ -65,7 +63,7 @@ run <- function() {
   # `Census` is a package-local object generated in 'data-raw/'
   modifiedCensus <- Census 
   
-#  # fix to match the county names that end in city to City
+  # fix to match the county names that end in city to City
   # modifiedCensus$County <- gsub(" city", " City", modifiedCensus$County) 
 
   ### Process the different datasources.
@@ -73,13 +71,13 @@ run <- function() {
   deathsData <- createDeaths(deathsfile)
   pd()
 
-  ps("Creating national-level vax projections, assuming {.code maxCoverage} = {.emph {maxCoverage}}")
+  ps("Creating national-level vax projections")
   ## this step creates national level projected vaccines data
   nationData <- createNationData(maxCoverage, nda, endDate) 
   pd()
 
   # this step create county level projected vaccines data by fine grained agegroup
-  ps("Creating county-level vax projections, assuming {.code maxCoverage} = {.emph {maxCoverage}}")
+  ps("Creating county-level vax projections")
   countyData <- createCountyData(nationData, modifiedCensus, maxCoverage, StateCensus) 
   pd()
 
@@ -92,7 +90,11 @@ run <- function() {
     ungroup() -> completeCounty
   pd()
 
-  completeCounty
+  ps("Converting state abbreviations to state names")
+  final <- stateAbbrToName(completeCounty)
+  pd()
+
+  final
 }
 
 ## view to see if result makes sens
