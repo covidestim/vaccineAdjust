@@ -289,7 +289,7 @@ projectionCounty <- function(dat, maxVac = rep(.8, 9), nda = 14, endDate = as.Da
   
   lastDate  <- dat[[nrow(dat),"Date"]]
   dayDiff   <- as.numeric(endDate - lastDate)
-  nda <- if(nrow(dat) < nda) {nrow(dat)-1} else {nda}
+  nda <- if(nrow(dat) <= nda) {nrow(dat)-1} else {nda}
   Date      <- seq.Date(lastDate+1, endDate, by = 1)
 
   LastCen <- dat[1,colnames(dat)[startsWith(colnames(dat), "census_")]]
