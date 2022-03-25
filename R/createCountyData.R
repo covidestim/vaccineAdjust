@@ -33,6 +33,9 @@ createCountyData <- function(nationalData, CountyCensus, maxCoverage, stateCensu
       .default = col_number()
     )
   ) %>% rename(County = Recip_County, StateName = Recip_State)
+
+  # Filter out any "counties" coded as "UNK"
+  countyData <- filter(countyData, FIPS != "UNK")
   
   countyData %>% 
     group_by(FIPS, StateName) %>% 
