@@ -61,7 +61,13 @@ run <- function() {
   pd()
 
   # `Census` is a package-local object generated in 'data-raw/'
-  modifiedCensus <- Census 
+  ## Replace the 0 population agegroups with 1 person;
+  ## in order to compute the IFR adjustments correctly ( no divide by 0)
+  noZeroPop <- function(x){x[x<=0] <- 1; return(x);}
+  
+  modifiedCensus <- Census %>% 
+    mutate_at(vars(starts_with("census")), noZeroPop)
+    
   
   # fix to match the county names that end in city to City
   # modifiedCensus$County <- gsub(" city", " City", modifiedCensus$County) 
